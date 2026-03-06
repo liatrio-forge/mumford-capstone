@@ -27,6 +27,10 @@ on:
     types:
       - completed
 
+permissions:
+  actions: read
+  contents: read
+
 jobs:
   notify:
     # Only notify for success or failure — skip cancelled/skipped runs
