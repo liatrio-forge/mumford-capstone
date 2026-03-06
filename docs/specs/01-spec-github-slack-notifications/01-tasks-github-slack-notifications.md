@@ -67,7 +67,7 @@
 
 ---
 
-### [~] 3.0 Implement Success Notification DM
+### [x] 3.0 Implement Success Notification DM
 
 **Purpose:** Send a formatted Slack Block Kit DM to the resolved user when a workflow completes successfully, including workflow name, branch, and a link to the run.
 
