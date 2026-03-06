@@ -85,7 +85,7 @@
 
 ---
 
-### [~] 4.0 Implement Failure Notification DM with Log Extraction
+### [x] 4.0 Implement Failure Notification DM with Log Extraction
 
 **Purpose:** When a workflow fails, fetch the failed job and step details from the GitHub API, extract the relevant error lines from the job log, and send a detailed Slack Block Kit DM to the triggering user.
 
