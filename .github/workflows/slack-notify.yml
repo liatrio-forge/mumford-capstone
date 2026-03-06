@@ -116,3 +116,76 @@ jobs:
           CHANNEL_ID=$(echo "$RESPONSE" | jq -r '.channel.id')
           echo "DM channel opened"
           echo "dm_channel_id=$CHANNEL_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Send success DM
+        id: send_success
+        if: inputs.workflow_conclusion == 'success' && steps.open_dm.outputs.dm_channel_id != ''
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        run: |
+          CHANNEL_ID="${{ steps.open_dm.outputs.dm_channel_id }}"
+          PAYLOAD=$(cat <<JSON
+          {
+            "channel": "$CHANNEL_ID",
+            "blocks": [
+              {
+                "type": "header",
+                "text": {
+                  "type": "plain_text",
+                  "text": ":white_check_mark: Workflow Succeeded",
+                  "emoji": true
+                }
+              },
+              {
+                "type": "section",
+                "fields": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Workflow*\n${{ inputs.workflow_name }}"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Branch*\n${{ inputs.branch }}"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Triggered by*\n${{ inputs.actor }}"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Commit*\n\`$(echo '${{ inputs.commit_sha }}' | cut -c1-7)\` ${{ inputs.commit_message }}"
+                  }
+                ]
+              },
+              {
+                "type": "actions",
+                "elements": [
+                  {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "View Run",
+                      "emoji": true
+                    },
+                    "url": "${{ inputs.run_url }}",
+                    "style": "primary"
+                  }
+                ]
+              }
+            ]
+          }
+          JSON
+          )
+          RESPONSE=$(curl -fsSL \
+            -X POST \
+            -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data "$PAYLOAD" \
+            "https://slack.com/api/chat.postMessage")
+          OK=$(echo "$RESPONSE" | jq -r '.ok')
+          if [ "$OK" != "true" ]; then
+            ERROR=$(echo "$RESPONSE" | jq -r '.error')
+            echo "ERROR: Failed to send success DM (error: $ERROR)"
+            exit 1
+          fi
+          echo "Success DM sent"

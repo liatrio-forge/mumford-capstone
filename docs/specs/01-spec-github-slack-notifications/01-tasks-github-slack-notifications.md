@@ -67,7 +67,7 @@
 
 ---
 
-### [ ] 3.0 Implement Success Notification DM
+### [~] 3.0 Implement Success Notification DM
 
 **Purpose:** Send a formatted Slack Block Kit DM to the resolved user when a workflow completes successfully, including workflow name, branch, and a link to the run.
 
@@ -78,9 +78,9 @@
 
 #### 3.0 Tasks
 
-- [ ] 3.1 Add a step named `Send success DM` with `if: inputs.workflow_conclusion == 'success' && steps.open_dm.outputs.dm_channel_id != ''` that builds a Slack Block Kit JSON payload inline using a shell heredoc
-- [ ] 3.2 The Block Kit payload for success should contain: a `header` block with text `:white_check_mark: Workflow Succeeded`, a `section` block with fields for `Workflow`, `Branch`, and `Triggered by`, and an `actions` block with a single button labeled `View Run` linking to `${{ inputs.run_url }}`
-- [ ] 3.3 Post the payload using `curl` to `chat.postMessage` with the `channel` set to `steps.open_dm.outputs.dm_channel_id`; parse the response with `jq` and fail the step (`exit 1`) if `ok` is `false`
+- [x] 3.1 Add a step named `Send success DM` with `if: inputs.workflow_conclusion == 'success' && steps.open_dm.outputs.dm_channel_id != ''` that builds a Slack Block Kit JSON payload inline using a shell heredoc
+- [x] 3.2 The Block Kit payload for success should contain: a `header` block with text `:white_check_mark: Workflow Succeeded`, a `section` block with fields for `Workflow`, `Branch`, and `Triggered by`, and an `actions` block with a single button labeled `View Run` linking to `${{ inputs.run_url }}`
+- [x] 3.3 Post the payload using `curl` to `chat.postMessage` with the `channel` set to `steps.open_dm.outputs.dm_channel_id`; parse the response with `jq` and fail the step (`exit 1`) if `ok` is `false`
 - [ ] 3.4 Commit and push; trigger `test-success.yml` manually via the GitHub Actions UI; take a screenshot of the resulting Slack DM and save it as `docs/proof/success-dm.png`
 
 ---
