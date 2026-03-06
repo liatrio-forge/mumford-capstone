@@ -47,7 +47,7 @@
 
 ---
 
-### [ ] 2.0 Implement Slack User Lookup with Graceful Fallback
+### [~] 2.0 Implement Slack User Lookup with Graceful Fallback
 
 **Purpose:** Resolve the GitHub actor's Slack user ID by fetching their public email from the GitHub API and looking it up in Slack. Handle the case where the email is not found without failing the workflow.
 
@@ -58,12 +58,12 @@
 
 #### 2.0 Tasks
 
-- [ ] 2.1 Replace the placeholder step in `slack-notify.yml` with a step named `Get GitHub actor email` that calls `GET /users/${{ inputs.actor }}` using `curl` with `GITHUB_TOKEN`, parses the `email` field with `jq -r '.email'`, and writes it to `$GITHUB_OUTPUT` as `actor_email`
-- [ ] 2.2 Add a step named `Check email resolved` that reads `steps.<prev>.outputs.actor_email`; if the value is `null` or empty, it writes `skip=true` to `$GITHUB_OUTPUT` and logs `WARNING: No public email found for actor ${{ inputs.actor }} — skipping DM`
-- [ ] 2.3 Add a step named `Lookup Slack user by email` with `if: steps.check_email.outputs.skip != 'true'` that calls the Slack `users.lookupByEmail` API endpoint with the actor email using `curl`, checks the `ok` field in the response, and writes the user ID (`response.user.id`) to `$GITHUB_OUTPUT` as `slack_user_id`
-- [ ] 2.4 Add fallback handling inside the `Lookup Slack user by email` step: if `ok` is `false`, log `WARNING: Could not resolve Slack user for actor ${{ inputs.actor }} — skipping DM`, write `skip=true` to `$GITHUB_OUTPUT` for a `lookup_result` output, and exit `0` (not `1`) so the workflow does not fail
-- [ ] 2.5 Add a step named `Open Slack DM channel` with `if: steps.lookup_slack.outputs.skip != 'true'` that calls `conversations.open` with the resolved `slack_user_id` via `curl` and writes the returned channel ID to `$GITHUB_OUTPUT` as `dm_channel_id`
-- [ ] 2.6 Commit, push, and trigger a test run; verify the run log shows the user ID resolved step output and the DM channel opened
+- [x] 2.1 Replace the placeholder step in `slack-notify.yml` with a step named `Get GitHub actor email` that calls `GET /users/${{ inputs.actor }}` using `curl` with `GITHUB_TOKEN`, parses the `email` field with `jq -r '.email'`, and writes it to `$GITHUB_OUTPUT` as `actor_email`
+- [x] 2.2 Add a step named `Check email resolved` that reads `steps.<prev>.outputs.actor_email`; if the value is `null` or empty, it writes `skip=true` to `$GITHUB_OUTPUT` and logs `WARNING: No public email found for actor ${{ inputs.actor }} — skipping DM`
+- [x] 2.3 Add a step named `Lookup Slack user by email` with `if: steps.check_email.outputs.skip != 'true'` that calls the Slack `users.lookupByEmail` API endpoint with the actor email using `curl`, checks the `ok` field in the response, and writes the user ID (`response.user.id`) to `$GITHUB_OUTPUT` as `slack_user_id`
+- [x] 2.4 Add fallback handling inside the `Lookup Slack user by email` step: if `ok` is `false`, log `WARNING: Could not resolve Slack user for actor ${{ inputs.actor }} — skipping DM`, write `skip=true` to `$GITHUB_OUTPUT` for a `lookup_result` output, and exit `0` (not `1`) so the workflow does not fail
+- [x] 2.5 Add a step named `Open Slack DM channel` with `if: steps.lookup_slack.outputs.skip != 'true'` that calls `conversations.open` with the resolved `slack_user_id` via `curl` and writes the returned channel ID to `$GITHUB_OUTPUT` as `dm_channel_id`
+- [~] 2.6 Commit, push, and trigger a test run; verify the run log shows the user ID resolved step output and the DM channel opened
 
 ---
 
