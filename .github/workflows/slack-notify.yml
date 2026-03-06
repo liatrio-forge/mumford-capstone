@@ -194,15 +194,27 @@ jobs:
         if: inputs.workflow_conclusion == 'failure' && steps.get_job.outputs.failed_job_id != ''
         run: |
           STEP_NAME="${{ steps.get_step.outputs.failed_step_name }}"
-          # Strip ANSI escape codes
-          sed 's/\x1b\[[0-9;]*m//g' /tmp/job.log > /tmp/job_clean.log
-          # Find the section of the log for the failed step and take the last 20 lines
-          SNIPPET=$(awk "/##\[group\]Run ${STEP_NAME}/{found=1} found{print}" /tmp/job_clean.log \
-            | tail -20 \
-            | head -c 3000)
-          # Fallback: if step header not found, just take the last 20 lines of the whole log
-          if [ -z "$SNIPPET" ]; then
-            SNIPPET=$(tail -20 /tmp/job_clean.log | head -c 3000)
+          # Strip ANSI escape codes and GitHub log timestamps
+          sed 's/\x1b\[[0-9;]*m//g' /tmp/job.log \
+            | sed 's/^[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}T[0-9:\.Z]*//g' \
+            > /tmp/job_clean.log
+          # Isolate the failed step's log section (stop at the next ##[group] or ##[endgroup])
+          awk "/##\[group\]Run ${STEP_NAME}/{found=1; next} found && /##\[endgroup\]/{exit} found{print}" \
+            /tmp/job_clean.log > /tmp/step.log
+          # If step header not found, fall back to whole log
+          if [ ! -s /tmp/step.log ]; then
+            cp /tmp/job_clean.log /tmp/step.log
+          fi
+          # Find the ##[error] marker and take up to 30 lines before it — this captures
+          # the actual failure output (test names, stack traces) that precedes the marker
+          ERROR_LINE=$(grep -n "##\[error\]" /tmp/step.log | tail -1 | cut -d: -f1)
+          if [ -n "$ERROR_LINE" ]; then
+            START=$((ERROR_LINE - 30))
+            if [ "$START" -lt 1 ]; then START=1; fi
+            SNIPPET=$(sed -n "${START},${ERROR_LINE}p" /tmp/step.log | head -c 3000)
+          else
+            # No ##[error] marker — fall back to last 20 lines
+            SNIPPET=$(tail -20 /tmp/step.log | head -c 3000)
           fi
           echo "Extracted $(echo "$SNIPPET" | wc -l) lines for error snippet"
           # Write multiline output safely
