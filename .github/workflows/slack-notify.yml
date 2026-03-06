@@ -1,0 +1,57 @@
+name: Slack Notify
+
+on:
+  workflow_call:
+    inputs:
+      workflow_name:
+        description: Display name of the workflow that completed
+        required: true
+        type: string
+      workflow_conclusion:
+        description: Conclusion of the workflow run (success or failure)
+        required: true
+        type: string
+      run_id:
+        description: ID of the workflow run
+        required: true
+        type: string
+      run_url:
+        description: URL to the workflow run on GitHub
+        required: true
+        type: string
+      branch:
+        description: Branch the workflow ran on
+        required: true
+        type: string
+      commit_sha:
+        description: Full SHA of the commit that triggered the workflow
+        required: true
+        type: string
+      commit_message:
+        description: Commit message that triggered the workflow
+        required: true
+        type: string
+      actor:
+        description: GitHub username of the user who triggered the workflow
+        required: true
+        type: string
+    secrets:
+      SLACK_BOT_TOKEN:
+        description: Slack bot OAuth token with users:read, users:read.email, im:write, chat:write scopes
+        required: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Echo received inputs
+        run: |
+          echo "Received workflow: ${{ inputs.workflow_name }}"
+          echo "Conclusion:        ${{ inputs.workflow_conclusion }}"
+          echo "Branch:            ${{ inputs.branch }}"
+          echo "Actor:             ${{ inputs.actor }}"
+          echo "Run ID:            ${{ inputs.run_id }}"
+          echo "Commit SHA:        ${{ inputs.commit_sha }}"

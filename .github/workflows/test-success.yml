@@ -1,0 +1,14 @@
+name: Test Success
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  succeed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Always succeed
+        run: echo "test workflow completed successfully"

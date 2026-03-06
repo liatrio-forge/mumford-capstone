@@ -1,0 +1,43 @@
+# ============================================================
+# SLACK NOTIFICATION CALLER WORKFLOW — COPY THIS FILE
+# ============================================================
+# Instructions:
+#   1. Copy this file to YOUR repo at .github/workflows/notify-on-completion.yml
+#   2. Replace the workflow names in the `workflows:` list below with the
+#      display names of the workflows YOU want to receive notifications for.
+#      NOTE: GitHub Actions does not support wildcards here — list each
+#      workflow name explicitly (the `name:` field from each workflow file).
+#   3. Add SLACK_BOT_TOKEN as an encrypted secret in your repo settings.
+#   4. Push — no other changes needed.
+# ============================================================
+
+name: Notify on Workflow Completion
+
+on:
+  workflow_run:
+    # List the display names (name: field) of workflows to receive notifications for.
+    # GitHub does not support wildcards — add each workflow name explicitly.
+    workflows:
+      - "CI"
+      - "Deploy"
+      # - "Add more workflow names here"
+    types:
+      - completed
+
+jobs:
+  notify:
+    # Only notify for success or failure — skip cancelled/skipped runs
+    if: >
+      github.event.workflow_run.conclusion == 'success' ||
+      github.event.workflow_run.conclusion == 'failure'
+    uses: liatrio-forge/mumford-capstone/.github/workflows/slack-notify.yml@main
+    with:
+      workflow_name: ${{ github.event.workflow_run.name }}
+      workflow_conclusion: ${{ github.event.workflow_run.conclusion }}
+      run_id: ${{ github.event.workflow_run.id }}
+      run_url: ${{ github.event.workflow_run.html_url }}
+      branch: ${{ github.event.workflow_run.head_branch }}
+      commit_sha: ${{ github.event.workflow_run.head_sha }}
+      commit_message: ${{ github.event.workflow_run.head_commit.message }}
+      actor: ${{ github.event.workflow_run.triggering_actor.login }}
+    secrets: inherit
