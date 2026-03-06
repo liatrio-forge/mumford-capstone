@@ -1,6 +1,6 @@
 # mumford-capstone — Shared Slack Notification Workflow
 
-A centralized GitHub Actions reusable workflow that sends Slack direct message notifications to the user who triggered a workflow whenever it completes. Any repository in the `liatrio-forge` organization can adopt this in about 5 minutes by copying one file and adding one secret.
+A centralized GitHub Actions reusable workflow that sends Slack direct message notifications whenever a workflow completes. Any repository in the `liatrio-forge` organization can adopt this in about 5 minutes by copying one file and adding two secrets.
 
 ---
 
@@ -12,9 +12,7 @@ Your repo                           mumford-capstone
 workflow_run event fires
   └─ notify-on-completion.yml  ──►  .github/workflows/slack-notify.yml
        (caller — you copy this)           │
-                                          ├─ Looks up GitHub actor email
-                                          ├─ Resolves Slack user by email
-                                          ├─ Opens a DM channel
+                                          ├─ Opens a DM channel to SLACK_USER_ID
                                           ├─ On success: sends summary DM
                                           └─ On failure: fetches job logs,
                                              extracts error snippet, sends
@@ -34,8 +32,6 @@ On **failure**, the DM includes: failed job name, failed step name, the last 20 
 1. Go to [api.slack.com/apps](https://api.slack.com/apps) and click **Create New App** → **From scratch**
 2. Give it a name (e.g. `CI Notifier`) and select your workspace
 3. Go to **OAuth & Permissions** → **Scopes** → **Bot Token Scopes** and add:
-   - `users:read`
-   - `users:read.email`
    - `im:write`
    - `chat:write`
 4. Click **Install to Workspace** and authorize
@@ -75,13 +71,14 @@ on:
 
 > **Note:** GitHub Actions does not support wildcards in `workflow_run.workflows`. You must list each workflow name explicitly.
 
-### Step 2 — Add the Slack bot token as a secret
+### Step 2 — Add two secrets
 
-In your repo, go to **Settings → Secrets and variables → Actions → New repository secret**:
+In your repo, go to **Settings → Secrets and variables → Actions → New repository secret** and add both:
 
-| Name | Value |
-|---|---|
-| `SLACK_BOT_TOKEN` | Your Slack bot token (`xoxb-...`) |
+| Name | Value | Where to find it |
+|---|---|---|
+| `SLACK_BOT_TOKEN` | Your Slack bot token (`xoxb-...`) | Slack app → OAuth & Permissions → Bot User OAuth Token |
+| `SLACK_USER_ID` | Your Slack member ID (`U0123456789`) | Slack → your profile → three dots `...` → **Copy member ID** |
 
 ### Step 3 — Push
 
@@ -91,7 +88,7 @@ Commit and push the caller workflow file. The next time any listed workflow comp
 
 ## Security Notes
 
-- `SLACK_BOT_TOKEN` is never logged or echoed — it is consumed only via GitHub Actions `env:` blocks
+- `SLACK_BOT_TOKEN` and `SLACK_USER_ID` are never logged or echoed — they are consumed only via GitHub Actions `env:` blocks and `secrets` context
 - **Log snippet warning:** The error output included in failure DMs is extracted directly from your job logs. If your workflows print environment variable values or other sensitive data to stdout, those values may appear in the DM. Avoid printing secrets in workflow steps
 - `GITHUB_TOKEN` is scoped to `actions: read` and `contents: read` within the notification workflow
 - Proof artifact screenshots in `docs/proof/` do not contain token values
@@ -120,6 +117,6 @@ docs/
 
 To test the notification workflows in this repo:
 
-1. Add `SLACK_BOT_TOKEN` as a secret in this repo's settings
+1. Add `SLACK_BOT_TOKEN` and `SLACK_USER_ID` as secrets in this repo's settings
 2. Go to **Actions → Test Success → Run workflow** to test a success DM
 3. Go to **Actions → Test Failure → Run workflow** to test a failure DM

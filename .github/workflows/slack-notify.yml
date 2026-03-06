@@ -37,7 +37,10 @@ on:
         type: string
     secrets:
       SLACK_BOT_TOKEN:
-        description: Slack bot OAuth token with users:read, users:read.email, im:write, chat:write scopes
+        description: Slack bot OAuth token with im:write and chat:write scopes
+        required: true
+      SLACK_USER_ID:
+        description: Slack member ID of the user to notify (e.g. U0123456789). Find it in Slack under your profile → three dots → Copy member ID.
         required: true
 
 jobs:
@@ -47,60 +50,24 @@ jobs:
       actions: read
       contents: read
     steps:
-      - name: Get GitHub actor email
-        id: get_email
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Check Slack user ID configured
+        id: check_user
         run: |
-          ACTOR="${{ inputs.actor }}"
-          EMAIL=$(curl -fsSL \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/users/$ACTOR" | jq -r '.email')
-          echo "actor_email=$EMAIL" >> "$GITHUB_OUTPUT"
-
-      - name: Check email resolved
-        id: check_email
-        run: |
-          EMAIL="${{ steps.get_email.outputs.actor_email }}"
-          if [ -z "$EMAIL" ] || [ "$EMAIL" = "null" ]; then
-            echo "WARNING: No public email found for actor ${{ inputs.actor }} — skipping DM"
+          if [ -z "${{ secrets.SLACK_USER_ID }}" ]; then
+            echo "WARNING: SLACK_USER_ID secret is not set — skipping DM"
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
-            echo "Email resolved: $EMAIL"
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Lookup Slack user by email
-        id: lookup_slack
-        if: steps.check_email.outputs.skip != 'true'
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-        run: |
-          EMAIL="${{ steps.get_email.outputs.actor_email }}"
-          RESPONSE=$(curl -fsSL \
-            -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
-            -H "Content-Type: application/json" \
-            "https://slack.com/api/users.lookupByEmail?email=$EMAIL")
-          OK=$(echo "$RESPONSE" | jq -r '.ok')
-          if [ "$OK" != "true" ]; then
-            ERROR=$(echo "$RESPONSE" | jq -r '.error')
-            echo "WARNING: Could not resolve Slack user for actor ${{ inputs.actor }} (error: $ERROR) — skipping DM"
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            USER_ID=$(echo "$RESPONSE" | jq -r '.user.id')
-            echo "Slack user ID resolved"
-            echo "slack_user_id=$USER_ID" >> "$GITHUB_OUTPUT"
+            echo "Slack user ID configured"
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Open Slack DM channel
         id: open_dm
-        if: steps.check_email.outputs.skip != 'true' && steps.lookup_slack.outputs.skip != 'true'
+        if: steps.check_user.outputs.skip != 'true'
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
         run: |
-          USER_ID="${{ steps.lookup_slack.outputs.slack_user_id }}"
+          USER_ID="${{ secrets.SLACK_USER_ID }}"
           RESPONSE=$(curl -fsSL \
             -X POST \
             -H "Authorization: Bearer $SLACK_BOT_TOKEN" \

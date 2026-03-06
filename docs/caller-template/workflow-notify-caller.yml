@@ -7,7 +7,10 @@
 #      display names of the workflows YOU want to receive notifications for.
 #      NOTE: GitHub Actions does not support wildcards here — list each
 #      workflow name explicitly (the `name:` field from each workflow file).
-#   3. Add SLACK_BOT_TOKEN as an encrypted secret in your repo settings.
+#   3. Add two encrypted secrets in your repo settings:
+#        SLACK_BOT_TOKEN  — your Slack bot OAuth token (xoxb-...)
+#        SLACK_USER_ID    — your Slack member ID (e.g. U0123456789)
+#                           Find it in Slack: profile → three dots → Copy member ID
 #   4. Push — no other changes needed.
 # ============================================================
 
