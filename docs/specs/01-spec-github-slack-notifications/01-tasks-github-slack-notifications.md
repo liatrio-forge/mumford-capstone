@@ -108,7 +108,7 @@
 
 ---
 
-### [~] 5.0 Add Test Workflow and README Documentation
+### [x] 5.0 Add Test Workflow and README Documentation
 
 **Purpose:** Provide a working test workflow in `mumford-capstone` to demonstrate the full notification pipeline, and write a README explaining how any repo in the org can adopt the integration.
 
