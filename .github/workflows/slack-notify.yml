@@ -89,60 +89,51 @@ jobs:
         if: inputs.workflow_conclusion == 'success' && steps.open_dm.outputs.dm_channel_id != ''
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          WORKFLOW_NAME: ${{ inputs.workflow_name }}
+          BRANCH: ${{ inputs.branch }}
+          ACTOR: ${{ inputs.actor }}
+          COMMIT_SHA: ${{ inputs.commit_sha }}
+          COMMIT_MESSAGE: ${{ inputs.commit_message }}
+          RUN_URL: ${{ inputs.run_url }}
         run: |
           CHANNEL_ID="${{ steps.open_dm.outputs.dm_channel_id }}"
-          PAYLOAD=$(cat <<JSON
-          {
-            "channel": "$CHANNEL_ID",
-            "blocks": [
-              {
-                "type": "header",
-                "text": {
-                  "type": "plain_text",
-                  "text": ":white_check_mark: Workflow Succeeded",
-                  "emoji": true
+          SHORT_SHA=$(echo "$COMMIT_SHA" | cut -c1-7)
+          PAYLOAD=$(jq -n \
+            --arg channel "$CHANNEL_ID" \
+            --arg workflow "$WORKFLOW_NAME" \
+            --arg branch "$BRANCH" \
+            --arg actor "$ACTOR" \
+            --arg commit "${SHORT_SHA} ${COMMIT_MESSAGE}" \
+            --arg run_url "$RUN_URL" \
+            '{
+              channel: $channel,
+              blocks: [
+                {
+                  type: "header",
+                  text: { type: "plain_text", text: ":white_check_mark: Workflow Succeeded", emoji: true }
+                },
+                {
+                  type: "section",
+                  fields: [
+                    { type: "mrkdwn", text: ("*Workflow*\n" + $workflow) },
+                    { type: "mrkdwn", text: ("*Branch*\n" + $branch) },
+                    { type: "mrkdwn", text: ("*Triggered by*\n" + $actor) },
+                    { type: "mrkdwn", text: ("*Commit*\n`" + $commit + "`") }
+                  ]
+                },
+                {
+                  type: "actions",
+                  elements: [
+                    {
+                      type: "button",
+                      text: { type: "plain_text", text: "View Run", emoji: true },
+                      url: $run_url,
+                      style: "primary"
+                    }
+                  ]
                 }
-              },
-              {
-                "type": "section",
-                "fields": [
-                  {
-                    "type": "mrkdwn",
-                    "text": "*Workflow*\n${{ inputs.workflow_name }}"
-                  },
-                  {
-                    "type": "mrkdwn",
-                    "text": "*Branch*\n${{ inputs.branch }}"
-                  },
-                  {
-                    "type": "mrkdwn",
-                    "text": "*Triggered by*\n${{ inputs.actor }}"
-                  },
-                  {
-                    "type": "mrkdwn",
-                    "text": "*Commit*\n\`$(echo '${{ inputs.commit_sha }}' | cut -c1-7)\` ${{ inputs.commit_message }}"
-                  }
-                ]
-              },
-              {
-                "type": "actions",
-                "elements": [
-                  {
-                    "type": "button",
-                    "text": {
-                      "type": "plain_text",
-                      "text": "View Run",
-                      "emoji": true
-                    },
-                    "url": "${{ inputs.run_url }}",
-                    "style": "primary"
-                  }
-                ]
-              }
-            ]
-          }
-          JSON
-          )
+              ]
+            }')
           RESPONSE=$(curl -fsSL \
             -X POST \
             -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
