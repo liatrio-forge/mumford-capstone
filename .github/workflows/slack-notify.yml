@@ -226,10 +226,11 @@ jobs:
         if: inputs.workflow_conclusion == 'failure' && steps.open_dm.outputs.dm_channel_id != ''
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          ERROR_SNIPPET: ${{ steps.extract_snippet.outputs.error_snippet }}
         run: |
           CHANNEL_ID="${{ steps.open_dm.outputs.dm_channel_id }}"
           SHORT_SHA=$(echo "${{ inputs.commit_sha }}" | cut -c1-7)
-          SNIPPET="${{ steps.extract_snippet.outputs.error_snippet }}"
+          SNIPPET="$ERROR_SNIPPET"
           # Escape backticks and backslashes in the snippet for JSON safety
           SNIPPET_ESCAPED=$(echo "$SNIPPET" | sed 's/\\/\\\\/g' | sed 's/`/\\`/g')
           PAYLOAD=$(jq -n \
