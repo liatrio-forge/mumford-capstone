@@ -108,7 +108,7 @@
 
 ---
 
-### [ ] 5.0 Add Test Workflow and README Documentation
+### [~] 5.0 Add Test Workflow and README Documentation
 
 **Purpose:** Provide a working test workflow in `mumford-capstone` to demonstrate the full notification pipeline, and write a README explaining how any repo in the org can adopt the integration.
 
@@ -120,8 +120,8 @@
 
 #### 5.0 Tasks
 
-- [ ] 5.1 Write `README.md` with the following sections: **Overview** (what this repo does), **Slack App Setup** (step-by-step: create Slack app, add bot scopes `users:read`, `users:read.email`, `im:write`, `chat:write`, install to workspace, copy bot token), **GitHub Secret Setup** (add `SLACK_BOT_TOKEN` as a repository secret in each consuming repo), **Onboarding a New Repo** (3 steps: copy `docs/caller-template/workflow-notify-caller.yml` into `.github/workflows/`, add `SLACK_BOT_TOKEN` secret, push — no other changes needed), **Security Note** (warn about log snippets potentially containing sensitive values)
-- [ ] 5.2 Add a `docs/proof/` directory with placeholder `README.md` explaining that screenshots are added after live testing; commit the placeholder so the directory is tracked by git
-- [ ] 5.3 Confirm the GitHub org Actions settings allow reusable workflows: navigate to `github.com/organizations/liatrio-forge/settings/actions` and verify "Allow all actions and reusable workflows" is enabled (or add `mumford-capstone` to the allowlist); document this prerequisite in the README
+- [x] 5.1 Write `README.md` with the following sections: **Overview** (what this repo does), **Slack App Setup** (step-by-step: create Slack app, add bot scopes `users:read`, `users:read.email`, `im:write`, `chat:write`, install to workspace, copy bot token), **GitHub Secret Setup** (add `SLACK_BOT_TOKEN` as a repository secret in each consuming repo), **Onboarding a New Repo** (3 steps: copy `docs/caller-template/workflow-notify-caller.yml` into `.github/workflows/`, add `SLACK_BOT_TOKEN` secret, push — no other changes needed), **Security Note** (warn about log snippets potentially containing sensitive values)
+- [x] 5.2 Add a `docs/proof/` directory with placeholder `README.md` explaining that screenshots are added after live testing; commit the placeholder so the directory is tracked by git
+- [x] 5.3 Confirm the GitHub org Actions settings allow reusable workflows: navigate to `github.com/organizations/liatrio-forge/settings/actions` and verify "Allow all actions and reusable workflows" is enabled (or add `mumford-capstone` to the allowlist); document this prerequisite in the README
 - [ ] 5.4 In a second repo in the org, copy `docs/caller-template/workflow-notify-caller.yml` into `.github/workflows/`, add `SLACK_BOT_TOKEN` as a secret, and push a commit to trigger a test run; capture a screenshot of the Actions tab showing the caller workflow invoking the reusable workflow and save as `docs/proof/onboarding-example.png`
 - [ ] 5.5 Commit all final files (`README.md`, `docs/proof/` screenshots) and push; verify the GitHub repo at `github.com/liatrio-forge/mumford-capstone` shows all workflows healthy and the README renders correctly
