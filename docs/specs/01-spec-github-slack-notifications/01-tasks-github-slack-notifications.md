@@ -23,7 +23,7 @@
 
 ## Tasks
 
-### [~] 1.0 Create Reusable Workflow Scaffold and Caller Template
+### [x] 1.0 Create Reusable Workflow Scaffold and Caller Template
 
 **Purpose:** Establish the `workflow_call` interface in `mumford-capstone` and provide a ready-to-copy caller template for consuming repos. This is the infrastructure that all subsequent notification logic builds on.
 
@@ -43,7 +43,7 @@
 - [x] 1.6 Create `docs/caller-template/workflow-notify-caller.yml` with: `on: workflow_run` (triggering on all workflows, types `[completed]`), a single job that calls `uses: liatrio-forge/mumford-capstone/.github/workflows/slack-notify.yml@main`, maps all `with:` inputs from `github.event.workflow_run` context fields, and passes `secrets: inherit`
 - [x] 1.7 Create `.github/workflows/test-success.yml` with a single job containing one step: `run: echo "test workflow completed successfully"`
 - [x] 1.8 Create `.github/workflows/test-caller.yml` that triggers via `workflow_run` on `test-success` (types `[completed]`) and calls `./.github/workflows/slack-notify.yml` using a local path reference with all inputs mapped from `github.event.workflow_run`
-- [~] 1.9 Commit and push all files; verify in the GitHub Actions UI that `test-success` and `test-caller` both appear and that `test-caller` completes with the echo output visible in the logs
+- [x] 1.9 Commit and push all files; verify in the GitHub Actions UI that `test-success` and `test-caller` both appear and that `test-caller` completes with the echo output visible in the logs
 
 ---
 
