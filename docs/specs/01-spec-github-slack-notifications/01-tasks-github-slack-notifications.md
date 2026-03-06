@@ -85,7 +85,7 @@
 
 ---
 
-### [ ] 4.0 Implement Failure Notification DM with Log Extraction
+### [~] 4.0 Implement Failure Notification DM with Log Extraction
 
 **Purpose:** When a workflow fails, fetch the failed job and step details from the GitHub API, extract the relevant error lines from the job log, and send a detailed Slack Block Kit DM to the triggering user.
 
@@ -96,14 +96,14 @@
 
 #### 4.0 Tasks
 
-- [ ] 4.1 Create `.github/workflows/test-failure.yml` with a single job containing one step: `run: echo "About to fail" && exit 1` so there is a workflow to trigger failure notifications with
-- [ ] 4.2 Update `.github/workflows/test-caller.yml` to also trigger on `test-failure` completing (add it to the `workflow_run` workflows list)
-- [ ] 4.3 Add a step named `Get failed job details` with `if: inputs.workflow_conclusion == 'failure'` that calls `GET /repos/${{ github.repository }}/actions/runs/${{ inputs.run_id }}/jobs` using `curl`, finds the first job where `conclusion == "failure"` using `jq`, and writes the job's `id` and `name` to `$GITHUB_OUTPUT` as `failed_job_id` and `failed_job_name`
-- [ ] 4.4 Add a step named `Get failed step name` that reads the jobs response from the previous step, finds the first step within the failed job where `conclusion == "failure"`, and writes its `name` to `$GITHUB_OUTPUT` as `failed_step_name`
-- [ ] 4.5 Add a step named `Fetch failed job logs` that calls `GET /repos/${{ github.repository }}/actions/jobs/${{ steps.get_job.outputs.failed_job_id }}/logs` using `curl` and saves the response body to a temporary file `/tmp/job.log`
-- [ ] 4.6 Add a step named `Extract error snippet` that reads `/tmp/job.log`, strips ANSI escape codes with `sed`, finds the section of the log belonging to the failed step (lines between the step header and the next step header), takes the last 20 lines, truncates to 3000 characters, and writes the result to `$GITHUB_OUTPUT` as `error_snippet`
-- [ ] 4.7 Add a step named `Send failure DM` with `if: inputs.workflow_conclusion == 'failure' && steps.open_dm.outputs.dm_channel_id != ''` that builds a Slack Block Kit JSON payload containing: a `header` block with `:x: Workflow Failed`, `section` fields for `Workflow`, `Failed Job`, `Failed Step`, `Branch`, `Commit` (SHA shortened to 7 chars + message), and a `section` with a code-formatted `error_snippet` in a text block, plus an `actions` button linking to the run URL
-- [ ] 4.8 Post the failure payload with `chat.postMessage` (same pattern as task 3.3); verify `ok: true` in the response
+- [x] 4.1 Create `.github/workflows/test-failure.yml` with a single job containing one step: `run: echo "About to fail" && exit 1` so there is a workflow to trigger failure notifications with
+- [x] 4.2 Update `.github/workflows/test-caller.yml` to also trigger on `test-failure` completing (add it to the `workflow_run` workflows list)
+- [x] 4.3 Add a step named `Get failed job details` with `if: inputs.workflow_conclusion == 'failure'` that calls `GET /repos/${{ github.repository }}/actions/runs/${{ inputs.run_id }}/jobs` using `curl`, finds the first job where `conclusion == "failure"` using `jq`, and writes the job's `id` and `name` to `$GITHUB_OUTPUT` as `failed_job_id` and `failed_job_name`
+- [x] 4.4 Add a step named `Get failed step name` that reads the jobs response from the previous step, finds the first step within the failed job where `conclusion == "failure"`, and writes its `name` to `$GITHUB_OUTPUT` as `failed_step_name`
+- [x] 4.5 Add a step named `Fetch failed job logs` that calls `GET /repos/${{ github.repository }}/actions/jobs/${{ steps.get_job.outputs.failed_job_id }}/logs` using `curl` and saves the response body to a temporary file `/tmp/job.log`
+- [x] 4.6 Add a step named `Extract error snippet` that reads `/tmp/job.log`, strips ANSI escape codes with `sed`, finds the section of the log belonging to the failed step (lines between the step header and the next step header), takes the last 20 lines, truncates to 3000 characters, and writes the result to `$GITHUB_OUTPUT` as `error_snippet`
+- [x] 4.7 Add a step named `Send failure DM` with `if: inputs.workflow_conclusion == 'failure' && steps.open_dm.outputs.dm_channel_id != ''` that builds a Slack Block Kit JSON payload containing: a `header` block with `:x: Workflow Failed`, `section` fields for `Workflow`, `Failed Job`, `Failed Step`, `Branch`, `Commit` (SHA shortened to 7 chars + message), and a `section` with a code-formatted `error_snippet` in a text block, plus an `actions` button linking to the run URL
+- [x] 4.8 Post the failure payload with `chat.postMessage` (same pattern as task 3.3); verify `ok: true` in the response
 - [ ] 4.9 Commit and push; trigger `test-failure.yml` manually; take a screenshot of the resulting Slack DM and save it as `docs/proof/failure-dm.png`
 
 ---

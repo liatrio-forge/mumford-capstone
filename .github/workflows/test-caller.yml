@@ -4,6 +4,7 @@ on:
   workflow_run:
     workflows:
       - "Test Success"
+      - "Test Failure"
     types:
       - completed
 

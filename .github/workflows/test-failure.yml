@@ -1,0 +1,13 @@
+name: Test Failure
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fail:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Always fail
+        run: |
+          echo "About to fail"
+          exit 1

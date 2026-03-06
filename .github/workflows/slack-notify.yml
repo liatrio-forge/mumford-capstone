@@ -189,3 +189,135 @@ jobs:
             exit 1
           fi
           echo "Success DM sent"
+
+      - name: Get failed job details
+        id: get_job
+        if: inputs.workflow_conclusion == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          JOBS=$(curl -fsSL \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ inputs.run_id }}/jobs")
+          FAILED_JOB=$(echo "$JOBS" | jq -r '[.jobs[] | select(.conclusion == "failure")] | first')
+          JOB_ID=$(echo "$FAILED_JOB" | jq -r '.id')
+          JOB_NAME=$(echo "$FAILED_JOB" | jq -r '.name')
+          echo "Failed job: $JOB_NAME (ID: $JOB_ID)"
+          echo "failed_job_id=$JOB_ID" >> "$GITHUB_OUTPUT"
+          echo "failed_job_name=$JOB_NAME" >> "$GITHUB_OUTPUT"
+          # Store steps as JSON for the next step to read
+          echo "$FAILED_JOB" > /tmp/failed_job.json
+
+      - name: Get failed step name
+        id: get_step
+        if: inputs.workflow_conclusion == 'failure'
+        run: |
+          FAILED_STEP=$(jq -r '[.steps[] | select(.conclusion == "failure")] | first | .name' /tmp/failed_job.json)
+          echo "Failed step: $FAILED_STEP"
+          echo "failed_step_name=$FAILED_STEP" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch failed job logs
+        id: fetch_logs
+        if: inputs.workflow_conclusion == 'failure' && steps.get_job.outputs.failed_job_id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          JOB_ID="${{ steps.get_job.outputs.failed_job_id }}"
+          curl -fsSL \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/jobs/$JOB_ID/logs" \
+            -o /tmp/job.log
+          echo "Log fetched ($(wc -l < /tmp/job.log) lines)"
+
+      - name: Extract error snippet
+        id: extract_snippet
+        if: inputs.workflow_conclusion == 'failure' && steps.get_job.outputs.failed_job_id != ''
+        run: |
+          STEP_NAME="${{ steps.get_step.outputs.failed_step_name }}"
+          # Strip ANSI escape codes
+          sed 's/\x1b\[[0-9;]*m//g' /tmp/job.log > /tmp/job_clean.log
+          # Find the section of the log for the failed step and take the last 20 lines
+          SNIPPET=$(awk "/##\[group\]Run ${STEP_NAME}/{found=1} found{print}" /tmp/job_clean.log \
+            | tail -20 \
+            | head -c 3000)
+          # Fallback: if step header not found, just take the last 20 lines of the whole log
+          if [ -z "$SNIPPET" ]; then
+            SNIPPET=$(tail -20 /tmp/job_clean.log | head -c 3000)
+          fi
+          echo "Extracted $(echo "$SNIPPET" | wc -l) lines for error snippet"
+          # Write multiline output safely
+          {
+            echo "error_snippet<<SNIPPET_EOF"
+            echo "$SNIPPET"
+            echo "SNIPPET_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Send failure DM
+        id: send_failure
+        if: inputs.workflow_conclusion == 'failure' && steps.open_dm.outputs.dm_channel_id != ''
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        run: |
+          CHANNEL_ID="${{ steps.open_dm.outputs.dm_channel_id }}"
+          SHORT_SHA=$(echo "${{ inputs.commit_sha }}" | cut -c1-7)
+          SNIPPET="${{ steps.extract_snippet.outputs.error_snippet }}"
+          # Escape backticks and backslashes in the snippet for JSON safety
+          SNIPPET_ESCAPED=$(echo "$SNIPPET" | sed 's/\\/\\\\/g' | sed 's/`/\\`/g')
+          PAYLOAD=$(jq -n \
+            --arg channel "$CHANNEL_ID" \
+            --arg workflow "${{ inputs.workflow_name }}" \
+            --arg job "${{ steps.get_job.outputs.failed_job_name }}" \
+            --arg step "${{ steps.get_step.outputs.failed_step_name }}" \
+            --arg branch "${{ inputs.branch }}" \
+            --arg commit "${SHORT_SHA} ${{ inputs.commit_message }}" \
+            --arg run_url "${{ inputs.run_url }}" \
+            --arg snippet "$SNIPPET_ESCAPED" \
+            '{
+              channel: $channel,
+              blocks: [
+                {
+                  type: "header",
+                  text: { type: "plain_text", text: ":x: Workflow Failed", emoji: true }
+                },
+                {
+                  type: "section",
+                  fields: [
+                    { type: "mrkdwn", text: ("*Workflow*\n" + $workflow) },
+                    { type: "mrkdwn", text: ("*Branch*\n" + $branch) },
+                    { type: "mrkdwn", text: ("*Failed Job*\n" + $job) },
+                    { type: "mrkdwn", text: ("*Failed Step*\n" + $step) },
+                    { type: "mrkdwn", text: ("*Commit*\n`" + $commit + "`") }
+                  ]
+                },
+                {
+                  type: "section",
+                  text: { type: "mrkdwn", text: ("*Error Output*\n```" + $snippet + "```") }
+                },
+                {
+                  type: "actions",
+                  elements: [
+                    {
+                      type: "button",
+                      text: { type: "plain_text", text: "View Run", emoji: true },
+                      url: $run_url,
+                      style: "danger"
+                    }
+                  ]
+                }
+              ]
+            }')
+          RESPONSE=$(curl -fsSL \
+            -X POST \
+            -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data "$PAYLOAD" \
+            "https://slack.com/api/chat.postMessage")
+          OK=$(echo "$RESPONSE" | jq -r '.ok')
+          if [ "$OK" != "true" ]; then
+            ERROR=$(echo "$RESPONSE" | jq -r '.error')
+            echo "ERROR: Failed to send failure DM (error: $ERROR)"
+            exit 1
+          fi
+          echo "Failure DM sent"
