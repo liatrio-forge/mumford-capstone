@@ -232,21 +232,27 @@ jobs:
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           ERROR_SNIPPET: ${{ steps.extract_snippet.outputs.error_snippet }}
+          WORKFLOW_NAME: ${{ inputs.workflow_name }}
+          FAILED_JOB: ${{ steps.get_job.outputs.failed_job_name }}
+          FAILED_STEP: ${{ steps.get_step.outputs.failed_step_name }}
+          BRANCH: ${{ inputs.branch }}
+          COMMIT_SHA: ${{ inputs.commit_sha }}
+          COMMIT_MESSAGE: ${{ inputs.commit_message }}
+          RUN_URL: ${{ inputs.run_url }}
         run: |
           CHANNEL_ID="${{ steps.open_dm.outputs.dm_channel_id }}"
-          SHORT_SHA=$(echo "${{ inputs.commit_sha }}" | cut -c1-7)
-          SNIPPET="$ERROR_SNIPPET"
-          # Escape backticks and backslashes in the snippet for JSON safety
-          SNIPPET_ESCAPED=$(echo "$SNIPPET" | sed 's/\\/\\\\/g' | sed 's/`/\\`/g')
+          SHORT_SHA=$(echo "$COMMIT_SHA" | cut -c1-7)
+          # Strip non-printable characters (except newlines/tabs) that Slack rejects
+          SNIPPET=$(printf '%s' "$ERROR_SNIPPET" | tr -cd '[:print:]\n\t')
           PAYLOAD=$(jq -n \
             --arg channel "$CHANNEL_ID" \
-            --arg workflow "${{ inputs.workflow_name }}" \
-            --arg job "${{ steps.get_job.outputs.failed_job_name }}" \
-            --arg step "${{ steps.get_step.outputs.failed_step_name }}" \
-            --arg branch "${{ inputs.branch }}" \
-            --arg commit "${SHORT_SHA} ${{ inputs.commit_message }}" \
-            --arg run_url "${{ inputs.run_url }}" \
-            --arg snippet "$SNIPPET_ESCAPED" \
+            --arg workflow "$WORKFLOW_NAME" \
+            --arg job "$FAILED_JOB" \
+            --arg step "$FAILED_STEP" \
+            --arg branch "$BRANCH" \
+            --arg commit "${SHORT_SHA} ${COMMIT_MESSAGE}" \
+            --arg run_url "$RUN_URL" \
+            --arg snippet "$SNIPPET" \
             '{
               channel: $channel,
               blocks: [
