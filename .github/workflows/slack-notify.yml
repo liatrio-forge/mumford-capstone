@@ -205,16 +205,18 @@ jobs:
           if [ ! -s /tmp/step.log ]; then
             cp /tmp/job_clean.log /tmp/step.log
           fi
-          # Find the ##[error] marker and take up to 30 lines before it — this captures
-          # the actual failure output (test names, stack traces) that precedes the marker
+          # Find the ##[error] marker and take up to 100 lines before it — this captures
+          # the actual failure output (test names, stack traces) that precedes the marker.
+          # head -c 3000 keeps the earliest content (test details) if output is too long,
+          # dropping the BUILD FAILURE summary at the tail (least informative part).
           ERROR_LINE=$(grep -n "##\[error\]" /tmp/step.log | tail -1 | cut -d: -f1)
           if [ -n "$ERROR_LINE" ]; then
-            START=$((ERROR_LINE - 30))
+            START=$((ERROR_LINE - 100))
             if [ "$START" -lt 1 ]; then START=1; fi
             SNIPPET=$(sed -n "${START},${ERROR_LINE}p" /tmp/step.log | head -c 3000)
           else
-            # No ##[error] marker — fall back to last 20 lines
-            SNIPPET=$(tail -20 /tmp/step.log | head -c 3000)
+            # No ##[error] marker — fall back to last 50 lines
+            SNIPPET=$(tail -50 /tmp/step.log | head -c 3000)
           fi
           echo "Extracted $(echo "$SNIPPET" | wc -l) lines for error snippet"
           # Write multiline output safely
