@@ -47,4 +47,10 @@ jobs:
       commit_sha: ${{ github.event.workflow_run.head_sha }}
       commit_message: ${{ github.event.workflow_run.head_commit.message }}
       actor: ${{ github.event.workflow_run.triggering_actor.login }}
+      # Optional: override the regex used to find the start of error output.
+      # Default is \[ERROR\] (Maven). Examples for other tools:
+      #   Gradle / Node:  "FAILED|Error:"
+      #   pytest:         "FAILED|ERROR"
+      #   Generic:        "error|Error|ERROR"
+      # error_pattern: "FAILED|Error:"
     secrets: inherit

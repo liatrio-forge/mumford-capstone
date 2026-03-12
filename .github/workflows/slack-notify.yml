@@ -35,6 +35,16 @@ on:
         description: GitHub username of the user who triggered the workflow
         required: true
         type: string
+      error_pattern:
+        description: >
+          Regex pattern used to find the start of error output in the job log.
+          Defaults to \[ERROR\] (Maven). Override for other build tools, e.g.:
+          "FAILED|Error:" for Gradle/Node, "FAILED|ERROR" for pytest.
+          If no match is found, falls back to the 100 lines before GitHub's
+          ##[error] marker.
+        required: false
+        type: string
+        default: "\\[ERROR\\]"
     secrets:
       SLACK_BOT_TOKEN:
         description: Slack bot OAuth token with im:write and chat:write scopes
@@ -205,16 +215,19 @@ jobs:
           if [ ! -s /tmp/step.log ]; then
             cp /tmp/job_clean.log /tmp/step.log
           fi
-          # Capture from the first [ERROR] line to the ##[error] marker.
-          # This collects all error output regardless of how many failures there are.
-          # If content exceeds 3000 chars, keep the start (first failures) and truncate
-          # the BUILD FAILURE summary at the tail (least informative).
-          FIRST_ERROR_LINE=$(grep -in "\[error\]\|##\[error\]" /tmp/step.log | head -1 | cut -d: -f1)
+          # Try to find the first line matching the caller-supplied error_pattern.
+          # If found, capture from there to ##[error] — collects all error output.
+          # If not found, fall back to the 100 lines before ##[error] (universal).
+          # If ##[error] is also absent, fall back to the last 50 lines.
+          # head -c 3000 keeps content from the start (first failures) if truncation needed.
+          ERROR_PATTERN="${{ inputs.error_pattern }}"
           ERROR_MARKER_LINE=$(grep -n "##\[error\]" /tmp/step.log | tail -1 | cut -d: -f1)
+          FIRST_ERROR_LINE=$(grep -inE "$ERROR_PATTERN" /tmp/step.log | head -1 | cut -d: -f1)
           if [ -n "$FIRST_ERROR_LINE" ] && [ -n "$ERROR_MARKER_LINE" ]; then
+            # Pattern matched — capture from first match to ##[error]
             SNIPPET=$(sed -n "${FIRST_ERROR_LINE},${ERROR_MARKER_LINE}p" /tmp/step.log | head -c 3000)
           elif [ -n "$ERROR_MARKER_LINE" ]; then
-            # No [ERROR] lines — take 100 lines before ##[error]
+            # Pattern not found — fall back to 100 lines before ##[error]
             START=$((ERROR_MARKER_LINE - 100))
             if [ "$START" -lt 1 ]; then START=1; fi
             SNIPPET=$(sed -n "${START},${ERROR_MARKER_LINE}p" /tmp/step.log | head -c 3000)
