@@ -205,17 +205,21 @@ jobs:
           if [ ! -s /tmp/step.log ]; then
             cp /tmp/job_clean.log /tmp/step.log
           fi
-          # Find the ##[error] marker and take up to 100 lines before it — this captures
-          # the actual failure output (test names, stack traces) that precedes the marker.
-          # head -c 3000 keeps the earliest content (test details) if output is too long,
-          # dropping the BUILD FAILURE summary at the tail (least informative part).
-          ERROR_LINE=$(grep -n "##\[error\]" /tmp/step.log | tail -1 | cut -d: -f1)
-          if [ -n "$ERROR_LINE" ]; then
-            START=$((ERROR_LINE - 100))
+          # Capture from the first [ERROR] line to the ##[error] marker.
+          # This collects all error output regardless of how many failures there are.
+          # If content exceeds 3000 chars, keep the start (first failures) and truncate
+          # the BUILD FAILURE summary at the tail (least informative).
+          FIRST_ERROR_LINE=$(grep -in "\[error\]\|##\[error\]" /tmp/step.log | head -1 | cut -d: -f1)
+          ERROR_MARKER_LINE=$(grep -n "##\[error\]" /tmp/step.log | tail -1 | cut -d: -f1)
+          if [ -n "$FIRST_ERROR_LINE" ] && [ -n "$ERROR_MARKER_LINE" ]; then
+            SNIPPET=$(sed -n "${FIRST_ERROR_LINE},${ERROR_MARKER_LINE}p" /tmp/step.log | head -c 3000)
+          elif [ -n "$ERROR_MARKER_LINE" ]; then
+            # No [ERROR] lines — take 100 lines before ##[error]
+            START=$((ERROR_MARKER_LINE - 100))
             if [ "$START" -lt 1 ]; then START=1; fi
-            SNIPPET=$(sed -n "${START},${ERROR_LINE}p" /tmp/step.log | head -c 3000)
+            SNIPPET=$(sed -n "${START},${ERROR_MARKER_LINE}p" /tmp/step.log | head -c 3000)
           else
-            # No ##[error] marker — fall back to last 50 lines
+            # No markers at all — fall back to last 50 lines
             SNIPPET=$(tail -50 /tmp/step.log | head -c 3000)
           fi
           echo "Extracted $(echo "$SNIPPET" | wc -l) lines for error snippet"
